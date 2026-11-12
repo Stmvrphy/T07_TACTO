@@ -64,8 +64,8 @@
     <div class="msg" id="err2" role="alert"></div>
   </div>
 
-<script src="config.js"></script>
-<script src="tacto.js"></script>
+<script src="config.js?v=3"></script>
+<script src="tacto.js?v=3"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
@@ -94,8 +94,9 @@ async function connect() {
   const will = { topic: `${base}/status`, payload: JSON.stringify({ online: false, name }), qos: 1, retain: true };
   const o = await Tacto.open({ clientId: 'tel-' + dev, will });
   client = o.client;
-  const where = /^wss?:\/\/(localhost|\d+\.\d+\.\d+\.\d+)/.test(o.broker) ? 'broker local' : 'broker público';
-  $('#info').textContent = `sala ${sala} · ${where}`;
+  let brokerHost = 'broker público';
+  try { brokerHost = new URL(o.broker).hostname; } catch {}
+  $('#info').textContent = `sala ${sala} · ${brokerHost}`;
   client.on('connect', () => {
     $('#st').textContent = '● conectado'; $('#st').className = 'on';
     client.subscribe(`${base}/cmd`); publishStatus();

@@ -11,7 +11,6 @@
 // Si la página del teléfono vive en otro sitio (por ejemplo, la del profesor), indica su dirección para el QR:
 //   window.TACTO_CONFIG = { phoneUrl: 'https://profesor.github.io/tacto/' };
 window.TACTO_CONFIG = {
-  broker: 'wss://q8a141b9.ala.us-east-1.emqxsl.com:8084/mqtt',
-  username: 'tacto_app',
-  password: 'blablablabla',
+  broker: 'wss://broker.emqx.io:8084/mqtt'
 };
+

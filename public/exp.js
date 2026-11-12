@@ -497,7 +497,13 @@ function updateAudioAndEffects() {
       isSounding = false;
       currentPlayingNote = null;
     }
-    touchCoords.textContent = 'SILENCIO (ESPERANDO AUDIO EN MICRÓFONO)';
+    if (isDown) {
+      const tx = tacto.get('touch.x') ?? 0.5;
+      const ty = tacto.get('touch.y') ?? 0.5;
+      touchCoords.textContent = `TACTO: ${tn} DEDO(S) · X: ${fmt(tx, 2)} · Y: ${fmt(ty, 2)}`;
+    } else {
+      touchCoords.textContent = 'TACTO: REPOSO · ACTIVA MICRÓFONO PARA AUDIO';
+    }
     return;
   }
 
