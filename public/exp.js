@@ -87,10 +87,8 @@ let currentSampler = null;
 // Pedales de Efectos de Guitarra
 let overdrive, phaser, chorus, tremolo, vibrato, delay, reverb, compressor, masterVol, analyser;
 
-function initAudioEngine() {
-  if (audioStarted) return;
-  Tone.start();
-
+function buildAudioChain() {
+  if (overdrive) return;
   // Overdrive
   overdrive = new Tone.Distortion({ distortion: 0.1, wet: 0 });
 
@@ -123,16 +121,30 @@ function initAudioEngine() {
   overdrive.chain(phaser, chorus, tremolo, vibrato, delay, reverb, compressor, masterVol, analyser, Tone.Destination);
 
   setupMasterRecorder();
-
-  audioStarted = true;
-  $('#btnAudioStart').textContent = '✓ AUDIO ACTIVO';
-  $('#btnAudioStart').classList.remove('btn-tr-cream');
-  $('#btnAudioStart').disabled = true;
-
   loadInstrument(currentInstrumentName);
 }
 
+function initAudioEngine() {
+  buildAudioChain();
+  Tone.start().then(() => {
+    audioStarted = true;
+    const btn = $('#btnAudioStart');
+    if (btn) {
+      btn.textContent = '✓ AUDIO ACTIVO';
+      btn.classList.remove('btn-tr-cream');
+      btn.style.background = 'var(--tr-orange)';
+      btn.style.color = '#fff';
+      btn.disabled = true;
+    }
+  }).catch(e => console.warn('Error al iniciar Tone:', e));
+}
+
 $('#btnAudioStart').onclick = initAudioEngine;
+window.addEventListener('click', () => { if (!audioStarted) initAudioEngine(); }, { once: false });
+window.addEventListener('touchstart', () => { if (!audioStarted) initAudioEngine(); }, { once: false });
+
+// Construir la cadena y comenzar a cargar samples de inmediato
+buildAudioChain();
 
 // =====================================================================
 // 3. CARGADOR DE SAMPLES ("tonejs-instruments-master")
@@ -349,8 +361,6 @@ function trackTouchGestures(tx, ty, isDown, now) {
 // 6. MOTOR DE AUDIO Y REGLAS DE MAPEADO EN TIEMPO REAL
 // =====================================================================
 function updateAudioAndEffects() {
-  if (!audioStarted || !currentSampler) return;
-
   const now = performance.now();
 
   // Sensores del teléfono
@@ -368,16 +378,15 @@ function updateAudioAndEffects() {
   const angb = tacto.get('ang.b') ?? 0;
   const angg = tacto.get('ang.g') ?? 0;
 
-  // Seguimiento de gestos táctiles
+  // Seguimiento de gestos táctiles (hold, vibración, deslizamiento)
   trackTouchGestures(tx, ty, tDown, now);
 
   // A.5 Presión (touch.f) regula el ATTACK del sonido
   const calculatedAttack = 0.01 + clamp(tf * 0.95, 0, 0.99);
-  currentSampler.attack = calculatedAttack;
   $('#dispAttack').textContent = `${calculatedAttack.toFixed(2)} s`;
-  $('#barAttack').style.width = `${clamp(tf * 100)}%`;
+  $('#barAttack').style.width = `${Math.max(8, clamp(tf * 100))}%`;
 
-  // A.6 Plano cartesiano táctil: escala dominante
+  // A.6 Plano cartesiano táctil: escala dominante (Mayor, Menor, Aumentada, Disminuida)
   const activeScaleName = getScaleTypeFromCartesian(tx, ty);
   $('#dispChordType').textContent = activeScaleName;
   $('#chordBadgeMajor').classList.toggle('active', activeScaleName === 'Mayor');
@@ -390,77 +399,68 @@ function updateAudioAndEffects() {
   const normX = clamp(angb / 60, -1, 1);
   const compThreshold = -20 - (normX * 20); // -40dB a 0dB
   const compRatio = clamp(4 + normX * 8, 1.2, 16);
-  compressor.threshold.value = compThreshold;
-  compressor.ratio.value = compRatio;
   $('#dispCompressor').textContent = `${Math.round(compThreshold)} dB (${compRatio.toFixed(1)}:1)`;
   $('#barCompressor').style.width = `${clamp(((normX + 1) / 2) * 100)}%`;
 
   // Eje Y (ang.g): Release (+ aumenta, - reduce)
   const normY = clamp(angg / 45, -1, 1);
   const calculatedRelease = clamp(1.2 + normY * 1.1, 0.1, 3.5);
-  currentSampler.release = calculatedRelease;
   $('#dispSustainRelease').textContent = `Rel: ${calculatedRelease.toFixed(2)}s`;
   $('#barRelease').style.width = `${clamp(((normY + 1) / 2) * 100)}%`;
 
   // Eje Z (ang.a): Sustain (+ aumenta, - reduce)
   const normZ = clamp((anga - 180) / 180, -1, 1);
   const calculatedSustain = clamp(0.7 + normZ * 0.5, 0.05, 1);
-  currentSampler.sustain = calculatedSustain;
 
   // --- REGLAS DE PEDALES DE EFECTOS ---
-  // Reset por defecto
   let revWet = 0, choWet = 0, dlyWet = 0, ovdWet = 0, ovdDist = 0.1;
 
-  if (tn === 1) {
-    // Regla 8: 1 dedo = sonido limpio sin ningún efecto
-    revWet = 0; choWet = 0; dlyWet = 0; ovdWet = 0;
-  } else if (tn === 2) {
-    // Regla 9: 2 dedos = Reverb (dedos juntos = bajo, separados = alto)
-    revWet = clamp(tdist * 1.5, 0.1, 0.95);
-    reverb.roomSize.value = 0.5 + revWet * 0.45;
-  } else if (tn === 3) {
-    // Regla 10: 3 dedos = Chorus (dedos juntos = bajo rate, separados = alto rate)
-    choWet = 0.75;
-    const chorusRate = 0.5 + clamp(tdist * 2, 0, 1) * 11.5; // 0.5 Hz a 12 Hz
-    chorus.frequency.value = chorusRate;
-  } else if (tn === 4) {
-    // Regla 11: 4 dedos = Delay (dedos juntos = bajo repeat, separados = alto repeat)
-    dlyWet = 0.65;
-    const delayFb = clamp(0.15 + tdist * 1.2, 0.1, 0.88);
-    delay.feedback.value = delayFb;
-  } else if (tn >= 5) {
-    // Regla 12: 5 dedos = Overdrive (dedos juntos = bajo, separados = alto)
-    ovdDist = clamp(tdist * 1.8, 0.15, 0.95);
-    ovdWet = clamp(0.3 + tdist * 0.7, 0.2, 0.95);
+  // Overdrive: controlado por presión (touch.f) o por 5 dedos
+  if (tn >= 5) {
+    ovdDist = clamp(0.3 + tdist * 1.5, 0.3, 0.95);
+    ovdWet = 0.85;
+  } else if (tf > 0.05) {
+    ovdDist = clamp(tf * 1.4, 0.1, 0.9);
+    ovdWet = clamp(tf * 1.2, 0.1, 0.85);
   }
 
-  // Regla 13: Mantener dedos presionados (a partir de 5s hasta 15s activa Tremolo)
+  // Reverb: 4 dedos o giro beta
+  if (tn === 4) {
+    revWet = clamp(0.35 + tdist * 1.5, 0.2, 0.95);
+  } else if (Math.abs(normX) > 0.35) {
+    revWet = clamp((Math.abs(normX) - 0.35) * 1.3, 0, 0.75);
+  }
+
+  // Chorus: 3 dedos o rotación
+  if (tn === 3) {
+    choWet = 0.8;
+  } else if (Math.abs(normZ) > 0.35) {
+    choWet = clamp((Math.abs(normZ) - 0.35) * 1.2, 0, 0.7);
+  }
+
+  // Delay: 2 dedos con separación de dedos (tdist)
+  if (tn === 2) {
+    dlyWet = clamp(0.25 + tdist * 1.5, 0.2, 0.88);
+  }
+
+  // Tremolo: mantener dedos presionados (hold >= 2 segundos)
   let trmWet = 0;
-  if (holdDurationSeconds >= 5) {
-    trmWet = clamp((holdDurationSeconds - 5) / 10, 0, 1);
+  if (holdDurationSeconds >= 2) {
+    trmWet = clamp((holdDurationSeconds - 2) / 4, 0, 0.95);
   }
-  tremolo.wet.value = trmWet;
 
-  // Regla 14: Gesto de vibrar dedos activa Vibrato
-  const vibWet = clamp(vibrationIntensity, 0, 0.95);
-  vibrato.wet.value = vibWet;
-  vibrato.depth.value = vibWet * 0.8;
+  // Vibrato: gesto de vibrar dedos
+  const vibWet = vibrationIntensity > 0.05 ? clamp(vibrationIntensity * 2.5, 0, 0.95) : 0;
 
-  // Regla 15: Gesto de deslizar lentamente activa Phaser
+  // Phaser: deslizar lentamente o giro gamma
   let phsWet = 0;
   if (isSlowSliding) {
-    phsWet = 0.75;
+    phsWet = 0.85;
+  } else if (Math.abs(normY) > 0.4) {
+    phsWet = clamp((Math.abs(normY) - 0.4) * 1.3, 0, 0.8);
   }
-  phaser.wet.value = phsWet;
 
-  // Aplicar valores a pedales de Tone.js
-  reverb.wet.value = revWet;
-  chorus.wet.value = choWet;
-  delay.wet.value = dlyWet;
-  overdrive.wet.value = ovdWet;
-  overdrive.distortion = ovdDist;
-
-  // Actualizar indicadores visuales de los pedales en la UI
+  // Actualizar indicadores visuales de los pedales en la UI (SIEMPRE VISIBLE)
   $('#dispValDrive').textContent = `${Math.round(ovdWet * 100)}%`;
   $('#barDrive').style.width = `${ovdWet * 100}%`;
   $('#pedalOverdrive').classList.toggle('active', ovdWet > 0.05);
@@ -489,25 +489,43 @@ function updateAudioAndEffects() {
   $('#barReverb').style.width = `${revWet * 100}%`;
   $('#pedalReverb').classList.toggle('active', revWet > 0.05);
 
-  // --- REGLAS A.1, A.2, A.3, A.4: ACTIVACIÓN EXCLUSIVA POR MICRÓFONO ---
-  // Silencio absoluto si micLevel está bajo el umbral
-  if (micLvl <= MIC_THRESHOLD) {
-    if (isSounding) {
-      currentSampler.releaseAll();
-      isSounding = false;
-      currentPlayingNote = null;
-    }
-    if (isDown) {
-      const tx = tacto.get('touch.x') ?? 0.5;
-      const ty = tacto.get('touch.y') ?? 0.5;
-      touchCoords.textContent = `TACTO: ${tn} DEDO(S) · X: ${fmt(tx, 2)} · Y: ${fmt(ty, 2)}`;
+  // Si el audio aún no está inicializado o no hay sampler, solo actualizamos coordenadas visuales
+  if (!audioStarted || !currentSampler) {
+    if (tDown) {
+      touchCoords.textContent = `TACTO: ${tn} DEDO(S) · X: ${fmt(tx, 2)} · Y: ${fmt(ty, 2)} (HAZ CLIC EN POWER AUDIO)`;
     } else {
-      touchCoords.textContent = 'TACTO: REPOSO · ACTIVA MICRÓFONO PARA AUDIO';
+      touchCoords.textContent = 'TACTO: REPOSO (HAZ CLIC EN POWER AUDIO)';
     }
     return;
   }
 
-  // A.3: Detectar y aproximar pitch del micrófono a la nota temperada más cercana
+  // Aplicar parámetros dinámicos a los nodos de Tone.js
+  currentSampler.attack = calculatedAttack;
+  currentSampler.release = calculatedRelease;
+  currentSampler.sustain = calculatedSustain;
+
+  compressor.threshold.value = compThreshold;
+  compressor.ratio.value = compRatio;
+
+  reverb.wet.value = revWet;
+  if (revWet > 0.05) reverb.roomSize.value = 0.5 + revWet * 0.45;
+
+  chorus.wet.value = choWet;
+  tremolo.wet.value = trmWet;
+
+  vibrato.wet.value = vibWet;
+  vibrato.depth.value = vibWet * 0.8;
+
+  delay.wet.value = dlyWet;
+  if (dlyWet > 0.05) delay.feedback.value = clamp(0.2 + tdist * 0.8, 0.1, 0.85);
+
+  phaser.wet.value = phsWet;
+
+  overdrive.wet.value = ovdWet;
+  overdrive.distortion = ovdDist;
+
+  // --- GENERACIÓN MUSICAL: TACTO + MICRÓFONO ---
+  // A.3: Si hay micrófono, detectar nota raíz por tono vocal (autocorrelación)
   if (micHz > 0) {
     const note = hzToClosestNote(micHz);
     if (note) lastDetectedNote = note;
@@ -516,24 +534,10 @@ function updateAudioAndEffects() {
   const rootNote = lastDetectedNote || 'C3';
   const scaleNotes = buildScaleSequence(rootNote, activeScaleName);
 
-  // A.4: Patrones de reproducción según decibeles (dB) del micrófono
-  const isLowDB = micLvl < 0.22;
-  const isMidDB = micLvl >= 0.22 && micLvl < 0.58;
-  const isHighDB = micLvl >= 0.58;
-
-  if (isLowDB) {
-    // dB bajos: nota detectada sostenida en loop
-    if (!isSounding || currentPlayingNote !== rootNote) {
-      currentSampler.releaseAll();
-      currentSampler.triggerAttack(rootNote, undefined, 0.8);
-      currentPlayingNote = rootNote;
-      isSounding = true;
-    }
-    touchCoords.textContent = `MIC BAJO · NOTA SOSTENIDA: ${rootNote} (${activeScaleName})`;
-
-  } else if (isMidDB) {
-    // dB medios: loop escala ascendente y descendente
-    const stepInterval = 170; // ms por nota
+  // A.4: Si el micrófono tiene volumen suficiente (> 0.22), reproduce secuencias rítmicas
+  if (micLvl >= 0.22 && micLvl < 0.58) {
+    // Loop melódico conducido por la voz
+    const stepInterval = 170;
     if (now - lastStepTime > stepInterval) {
       scaleSequenceIndex = (scaleSequenceIndex + 1) % scaleNotes.length;
       const stepNote = scaleNotes[scaleSequenceIndex];
@@ -543,10 +547,10 @@ function updateAudioAndEffects() {
       lastStepTime = now;
       isSounding = true;
     }
-    touchCoords.textContent = `MIC MEDIO · ESCALA LOOP: ${currentPlayingNote} (${activeScaleName})`;
+    touchCoords.textContent = `VOZ + TACTO · ESCALA: ${currentPlayingNote} (${activeScaleName})`;
 
-  } else if (isHighDB) {
-    // dB altos: notas aleatorias dentro de la escala
+  } else if (micLvl >= 0.58) {
+    // Voz alta: arpegios rápidos
     const stepInterval = 130;
     if (now - lastStepTime > stepInterval) {
       const randIdx = Math.floor(Math.random() * scaleNotes.length);
@@ -557,7 +561,31 @@ function updateAudioAndEffects() {
       lastStepTime = now;
       isSounding = true;
     }
-    touchCoords.textContent = `MIC ALTO · NOTAS ALEATORIAS: ${currentPlayingNote} (${activeScaleName})`;
+    touchCoords.textContent = `VOZ FUERTE · NOTAS: ${currentPlayingNote} (${activeScaleName})`;
+
+  } else if (tDown) {
+    // EL USUARIO ESTÁ TOCANDO LA PANTALLA:
+    // El eje X selecciona la nota a lo largo de la escala activa (Mayor, Menor, etc.)
+    const noteIdx = Math.floor(clamp(tx, 0, 0.999) * scaleNotes.length);
+    const targetNote = scaleNotes[noteIdx];
+
+    if (!isSounding || currentPlayingNote !== targetNote) {
+      currentSampler.releaseAll();
+      const vel = clamp(0.6 + tf * 0.4, 0.5, 1);
+      currentSampler.triggerAttack(targetNote, undefined, vel);
+      currentPlayingNote = targetNote;
+      isSounding = true;
+    }
+    touchCoords.textContent = `TACTO SONANDO: ${targetNote} (${activeScaleName}) · ${tn} DEDO(S)`;
+
+  } else {
+    // Dedos levantados y micrófono en silencio
+    if (isSounding) {
+      currentSampler.releaseAll();
+      isSounding = false;
+      currentPlayingNote = null;
+    }
+    touchCoords.textContent = 'TACTO: REPOSO (TOCA LA PANTALLA PARA SONAR)';
   }
 }
 
