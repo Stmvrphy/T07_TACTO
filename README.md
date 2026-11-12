@@ -65,17 +65,48 @@ La comunicación entre el teléfono inteligente y la experiencia en el computado
 
 ---
 
-### 2.3 Banco de Sonidos y Autoría Declarada
+### 2.3 Banco de Sonidos y Declaración de Licencias
 Para dotar a la plataforma de timbres orgánicos de alta fidelidad, se integró el motor de samples **Tonejs-Instruments**:
-* **Autoría:** Desarrollado por Benjamin Taylor ([nbrosowsky/tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments)) y Keith Horwood.
-* **Licencia:** Código y samples distribuidos bajo **Licencia MIT (código abierto)**.
-* **Instrumentos disponibles (20 voces seleccionables al vuelo):**
+* **Repositorio Original:** [nbrosowsky/tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments)
+* **Autor del Código:** Nicholaus P. Brosowsky (2018).
+* **Licencia del Software:** **MIT License** (ver detalle abajo).
+* **Licencia de los Samples:** **Creative Commons Attribution 3.0 Unported ([CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/))**.
+* **Procedencia y Créditos de los Samples:**
+  * **Versilian Studios (VSCO 2 Community Edition):** Piano acústico, Fagot, Contrabajo, Flauta traversa, Corno francés, Arpa, Órgano, Trombón, Trompeta, Tuba, Violín, Xilófono ([vis.versilstudios.net](http://vis.versilstudios.net/vsco-community.html)).
+  * **Karoryfer Samples:** Bajo eléctrico, Guitarra eléctrica, Saxofón ([karoryfer.com](https://www.karoryfer.com/karoryfer-samples)).
+  * **University of Iowa Electronic Music Studios (MIS):** Guitarra acústica ([theremin.music.uiowa.edu](http://theremin.music.uiowa.edu/)).
+  * **Freesound.org:** Cello (`flcellogrl` #12408), Guitarra clásica/nylon (`quartertone` #11573), Harmonio (`donyaquick` #330410).
+* **Instrumentos disponibles en la aplicación (20 voces seleccionables):**
   * *Teclados y cuerdas acústicas:* Piano de cola acústico, Piano eléctrico (Rhodes), Clavicémbalo, Órgano de tubos.
   * *Cuerdas frotadas y punteadas:* Cello, Contrabajo, Violín, Guitarra acústica de nylon, Guitarra eléctrica, Bajo eléctrico.
   * *Vientos madera y metal:* Flauta traversa, Clarinete, Fagot, Oboe, Saxofón, Trompeta, Trombón, Tuba, Corno francés.
   * *Percusión melódica:* Xilófono.
-* **Optimización y Minificación:** Se implementó carga por mapeo de terceras mayores con interpolación de pitch en Tone.js para permitir tiempos de carga menores a 1,5 segundos en conexiones móviles y portabilidad completa en GitHub Pages.
-* **Grabador Maestro de Cinta Integrado:** Permite registrar la interpretación completa y exportarla en tiempo real a **`.WAV` (PCM 16-bit 44.1kHz)** o codificarla a **`.MP3`** en el navegador mediante `lamejs`.
+* **Grabador Maestro de Cinta:** Exportación en **`.WAV` (PCM 16-bit 44.1kHz)** y **`.MP3`** en el navegador mediante `lamejs` ([LGPL-3.0](https://github.com/zhuker/lamejs)).
+
+#### Texto de la Licencia MIT (Tonejs-Instruments)
+```text
+MIT License
+
+Copyright (c) 2018 Nicholaus P. Brosowsky
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
 
 ---
 
@@ -99,7 +130,7 @@ A pesar de la riqueza expresiva lograda, existen limitantes impuestas por la tec
 
 * **Tacto Toolkit:** Felipe Rocha ([fefeliperoar/tacto](https://github.com/fefeliperoar/tacto)).
 * **Motor de Audio:** [Tone.js](https://tonejs.github.io/) (v14.8.49).
-* **Banco de Instrumentos:** [Tonejs-Instruments](https://github.com/nbrosowsky/tonejs-instruments) por Benjamin Taylor & Keith Horwood (Licencia MIT).
+* **Banco de Instrumentos & Samples:** [Tonejs-Instruments](https://github.com/nbrosowsky/tonejs-instruments) por Nicholaus P. Brosowsky (MIT License / CC-BY 3.0).
 * **Codificador MP3:** [lamejs](https://github.com/zhuker/lamejs) por Alex Zhukov (Licencia LGPL-3.0).
 * **Broker MQTT:** [EMQX](https://www.emqx.com/) (Eclipse Paho / MQTT.js).
 * **Diseño e Interfaz Gráfica:** Inspirado en la tipografía, botones de paso y códigos de color de la caja de ritmo vintage **Roland Rhythm Composer TR-808 (1980)**.
