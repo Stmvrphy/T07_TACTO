@@ -120,8 +120,8 @@ function buildAudioChain() {
   // Cadena en serie: Sampler -> Overdrive -> Phaser -> Chorus -> Tremolo -> Vibrato -> Delay -> Reverb -> Compressor -> Vol -> Analyser -> Dest
   overdrive.chain(phaser, chorus, tremolo, vibrato, delay, reverb, compressor, masterVol, analyser, Tone.Destination);
 
-  setupMasterRecorder();
-  loadInstrument(currentInstrumentName);
+  try { setupMasterRecorder(); } catch (e) { console.warn('Recorder init:', e); }
+  try { loadInstrument(currentInstrumentName); } catch (e) { console.warn('Load inst:', e); }
 }
 
 function initAudioEngine() {
@@ -142,9 +142,6 @@ function initAudioEngine() {
 $('#btnAudioStart').onclick = initAudioEngine;
 window.addEventListener('click', () => { if (!audioStarted) initAudioEngine(); }, { once: false });
 window.addEventListener('touchstart', () => { if (!audioStarted) initAudioEngine(); }, { once: false });
-
-// Construir la cadena y comenzar a cargar samples de inmediato
-buildAudioChain();
 
 // =====================================================================
 // 3. CARGADOR DE SAMPLES ("tonejs-instruments-master")
@@ -1172,6 +1169,12 @@ function renderVisualizer() {
 // =====================================================================
 // 9. ARRANQUE
 // =====================================================================
+try {
+  buildAudioChain();
+} catch (e) {
+  console.warn('Error al iniciar cadena de audio:', e);
+}
+
 tacto.connect().then(() => {
   updateConnectionUI();
   setupQR();
