@@ -134,3 +134,6 @@ A pesar de la riqueza expresiva lograda, existen limitantes impuestas por la tec
 * **Codificador MP3:** [lamejs](https://github.com/zhuker/lamejs) por Alex Zhukov (Licencia LGPL-3.0).
 * **Broker MQTT:** [EMQX](https://www.emqx.com/) (Eclipse Paho / MQTT.js).
 * **Diseño e Interfaz Gráfica:** Inspirado en la tipografía, botones de paso y códigos de color de la caja de ritmo vintage **Roland Rhythm Composer TR-808 (1980)**.
+*  **Integrantes:**
+Sebastián Urquiza
+Noelia Landaburu 
