@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+<meta name="theme-color" content="#0a0710">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Tacto · control remoto</title>
+<link rel="stylesheet" href="ui.css">
+<style>
+  * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+  html, body { font-size: 16px; overscroll-behavior: none; user-select: none; -webkit-user-select: none; }
+  body { display: flex; flex-direction: column; gap: var(--sp-3); padding: max(var(--sp-3), env(safe-area-inset-top)) max(var(--sp-3), env(safe-area-inset-right)) max(var(--sp-3), env(safe-area-inset-bottom)) max(var(--sp-3), env(safe-area-inset-left)); }
+  input { width: 100%; min-height: 48px; padding: 12px 14px; border-radius: var(--r-m); background: var(--bg-2); user-select: text; -webkit-user-select: text; font-size: 16px; /* 16px evita el zoom de iOS */ }
+  label { font-size: 13px; font-weight: 500; }
+  button { min-height: 48px; border-radius: var(--r-m); padding: 12px; font-weight: 600; }
+  #join { display: flex; flex-direction: column; gap: var(--sp-3); margin: auto 0; max-width: 460px; width: 100%; align-self: center; }
+  #join .field { display: flex; flex-direction: column; gap: 6px; }
+  #join .note { color: var(--mut); font-size: 13px; line-height: 1.5; }
+  #go { margin-top: var(--sp-2); font-size: 17px; }
+  #run { display: none; flex: 1; min-height: 0; flex-direction: column; gap: var(--sp-3); }
+  #bar { display: flex; justify-content: space-between; align-items: center; color: var(--mut); font-size: 13px; gap: var(--sp-2); padding: 0 var(--sp-1); }
+  #bar { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; }
+  #st { font-weight: 600; } #st.on { color: var(--ok); } #st.warn { color: var(--warn); }
+  #surface { position: relative; flex: 1; min-height: 0; border-radius: var(--r-l); border: 1px solid var(--line-2); overflow: hidden; touch-action: none;
+             background: radial-gradient(circle at 50% 40%, #2a1e46, #0d0915 72%); }
+  #cv { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #hud { position: absolute; left: 12px; top: 10px; right: 12px; font: 12px/1.5 var(--mono); color: #d8d2ee; pointer-events: none; white-space: pre; text-shadow: 0 1px 2px #000; overflow: hidden; }
+  #hint { position: absolute; inset: 0; display: grid; place-items: center; color: var(--mut); pointer-events: none; text-align: center; padding: 0 32px; font-size: 15px; }
+  #mods { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-2); }
+  .mod { background: var(--card); border: 1px solid var(--line); color: var(--mut); padding: 10px 4px; font-size: 14px; font-weight: 500; min-height: 56px; }
+  .mod[aria-pressed="true"], .mod.active { border-color: var(--vio-2); color: var(--fg); background: #271c42; box-shadow: inset 0 0 0 1px var(--vio); }
+  .mod { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .mod::before { content: "APAGADO"; font-size: 9px; letter-spacing: .12em; font-weight: 700; color: var(--mut); margin-bottom: 2px; }
+  .mod[aria-pressed="true"]::before { content: "ACTIVO"; color: var(--neo); }
+  #surface:active { border-color: var(--vio-2); }
+  .mod small { display: block; font-weight: 400; font-size: 11px; margin-top: 2px; font-variant-numeric: tabular-nums; color: var(--mut); }
+  .mod.active small { color: var(--neo); }
+  .msg { font-size: 13px; }
+  @media (max-height: 520px) { #mods { grid-template-columns: repeat(3, 1fr); } .mod { min-height: 44px; padding: 6px 4px; } #hud { font-size: 11px; } }
+</style>
+</head>
+<body>
+  <div id="join" class="card">
+    <h1>TACTO <span>· control remoto</span></h1>
+    <div class="field"><label for="name">Tu nombre</label>
+    <input id="name" autocomplete="off" autocapitalize="off" maxlength="24" placeholder="ej: ana"></div>
+    <div class="field"><label for="sala">Sala (la muestra la experiencia en el computador)</label>
+    <input id="sala" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="24" placeholder="ej: k7m2xq"></div>
+    <button id="go" class="primary">Conectar</button>
+    <div class="msg" id="err" role="alert"></div>
+    <div class="note">Acepta el permiso de movimiento y deja la pantalla encendida. En iPhone, "Añadir a pantalla de inicio" evita los gestos del borde.</div>
+  </div>
+
+  <div id="run">
+    <div id="bar"><span id="st" role="status" aria-live="polite">Conectando…</span><span id="info"></span></div>
+    <div id="surface"><canvas id="cv" aria-hidden="true"></canvas><div id="hud" aria-hidden="true"></div><div id="hint">Toca y arrastra con uno o varios dedos</div></div>
+    <div id="mods">
+      <button class="mod" id="m-motion" aria-pressed="false">Giro<small id="v-motion">–</small></button>
+      <button class="mod" id="m-mic" aria-pressed="false">Micrófono<small id="v-mic">–</small></button>
+      <button class="mod" id="m-cam" aria-pressed="false">Cámara<small id="v-cam">–</small></button>
+    </div>
+    <div class="msg" id="err2" role="alert"></div>
+  </div>
+
+<script src="config.js"></script>
+<script src="tacto.js"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const ls = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch {} return null; };
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const r1 = v => Math.round(v * 10) / 10, r2 = v => Math.round(v * 100) / 100, r3 = v => Math.round(v * 1000) / 1000;
+
+const Q = new URLSearchParams(location.search);
+$('#name').value = ls('tacto.name') || '';
+$('#sala').value = Tacto.clean(Q.get('sala')) || Tacto.clean(ls('tacto.sala')) || '';
+
+let client = null, base = '', name = '', sala = '';
+const dev = ls('tacto.dev') || (ls('tacto.dev', Tacto.rand(6)), ls('tacto.dev'));
+const pub = (kind, obj, qos = 0, retain = false) => client && client.connected && client.publish(`${base}/${kind}`, JSON.stringify(obj), { qos, retain });
+
+// ---------- capacidades detectadas (presión y diámetro dependen del teléfono) ----------
+const S = { f: { min: 9, max: -1, n: 0 }, d: { min: 1e9, max: -1, n: 0 } };
+const quality = (s, eps) => (!s.n ? 'sin datos aún' : s.max <= 0 ? 'sin dato' : s.n > 20 && s.max - s.min < eps ? 'constante' : 'variable');
+const caps = () => ({ presion: quality(S.f, 0.02), diametro: quality(S.d, 1), tacto: 'ontouchstart' in window ? 'touch' : 'puntero' });
+let lastCaps = '';
+function publishStatus() { pub('status', { online: true, name, caps: { ...caps(), motion: motionOn, mic: !!micStream, cam: !!camStream } }, 1, true); }
+
+// ---------- conexión MQTT ----------
+async function connect() {
+  base = `tacto/${sala}/${dev}`;
+  const will = { topic: `${base}/status`, payload: JSON.stringify({ online: false, name }), qos: 1, retain: true };
+  const o = await Tacto.open({ clientId: 'tel-' + dev, will });
+  client = o.client;
+  const where = /^wss?:\/\/(localhost|\d+\.\d+\.\d+\.\d+)/.test(o.broker) ? 'broker local' : 'broker público';
+  $('#info').textContent = `sala ${sala} · ${where}`;
+  client.on('connect', () => {
+    $('#st').textContent = '● conectado'; $('#st').className = 'on';
+    client.subscribe(`${base}/cmd`); publishStatus();
+  });
+  client.on('reconnect', () => { $('#st').textContent = 'Reconectando…'; $('#st').className = 'warn'; });
+  client.on('offline', () => { $('#st').textContent = 'Sin conexión'; $('#st').className = 'warn'; });
+  client.on('error', e => { $('#err2').textContent = 'MQTT: ' + (e.message || e); });
+  client.on('message', (t, p) => { // la experiencia mide la latencia: respondemos al instante
+    try { const m = JSON.parse(p.toString()); if (m.ping != null) pub('pong', { t: m.ping }); } catch {}
+  });
+}
+
+// ---------- tacto ----------
+const surf = $('#surface'), cv = $('#cv'), g = cv.getContext('2d');
+let cur = { n: 0, p: [], ar: 1 }, lastN = 0, queued = false;
+function fit() { const d = devicePixelRatio || 1, r = surf.getBoundingClientRect(); cv.width = r.width * d; cv.height = r.height * d; g.setTransform(d, 0, 0, d, 0, 0); }
+addEventListener('resize', fit);
+
+function setTouches(p, r) {
+  cur = { n: p.length, p, ar: r3(r.width / r.height) };
+  for (const z of p) {
+    S.f.n++; S.f.min = Math.min(S.f.min, z.f); S.f.max = Math.max(S.f.max, z.f);
+    S.d.n++; S.d.min = Math.min(S.d.min, z.d); S.d.max = Math.max(S.d.max, z.d);
+  }
+  if (p.length) $('#hint').style.display = 'none';
+  if (cur.n !== lastN) { lastN = cur.n; sendTouch(1); } // cambios de cantidad de dedos: entrega garantizada
+  else if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; sendTouch(0); }); } // movimiento: hasta ~60 por segundo
+}
+const sendTouch = qos => pub('touch', { t: Date.now(), n: cur.n, ar: cur.ar, p: cur.p.map(z => ({ i: z.i, x: r3(z.x), y: r3(z.y), f: r3(z.f), d: Math.round(z.d) })) }, qos);
+
+// Dedos (Touch Events: traen presión y radio de contacto)
+const slots = new Map(); // identifier -> casilla 1..5 (estable mientras el dedo siga apoyado)
+function slotFor(id) {
+  if (slots.has(id)) return slots.get(id);
+  const used = new Set(slots.values());
+  for (let s = 1; s <= 5; s++) if (!used.has(s)) { slots.set(id, s); return s; }
+  return null;
+}
+function onTouch(e) {
+  e.preventDefault();
+  const r = surf.getBoundingClientRect(), list = Array.from(e.targetTouches), ids = new Set(list.map(t => t.identifier));
+  for (const id of [...slots.keys()]) if (!ids.has(id)) slots.delete(id);
+  const p = [];
+  for (const t of list) {
+    const i = slotFor(t.identifier); if (!i) continue;
+    const rx = t.radiusX ?? t.webkitRadiusX ?? 0, ry = t.radiusY ?? t.webkitRadiusY ?? 0;
+    p.push({ i, x: clamp((t.clientX - r.left) / r.width), y: clamp((t.clientY - r.top) / r.height), f: t.force ?? t.webkitForce ?? 0, d: rx + ry }); // diámetro medio = rx + ry
+  }
+  setTouches(p.sort((a, b) => a.i - b.i), r);
+}
+['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(n => surf.addEventListener(n, onTouch, { passive: false }));
+['gesturestart', 'gesturechange'].forEach(n => document.addEventListener(n, e => e.preventDefault()));
+surf.addEventListener('contextmenu', e => e.preventDefault());
+
+// Ratón o lápiz (para probar desde un computador)
+const ptrs = new Map();
+function fromPtrs() {
+  const r = surf.getBoundingClientRect(), p = []; let i = 0;
+  for (const e of ptrs.values()) { if (++i > 5) break; p.push({ i, x: clamp((e.clientX - r.left) / r.width), y: clamp((e.clientY - r.top) / r.height), f: e.pressure || 0, d: Math.max(e.width || 0, e.height || 0) }); }
+  setTouches(p, r);
+}
+surf.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') return; surf.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, e); fromPtrs(); });
+surf.addEventListener('pointermove', e => { if (ptrs.has(e.pointerId)) { ptrs.set(e.pointerId, e); fromPtrs(); } });
+const pend = e => { if (ptrs.delete(e.pointerId)) fromPtrs(); };
+surf.addEventListener('pointerup', pend); surf.addEventListener('pointercancel', pend);
+
+// Dibujo y panel de datos
+function draw() {
+  const r = surf.getBoundingClientRect(); g.clearRect(0, 0, r.width, r.height);
+  for (const z of cur.p) {
+    const x = z.x * r.width, y = z.y * r.height, rad = Math.max(22, z.d / 2);
+    g.fillStyle = `hsla(${270 + z.f * 80},85%,62%,${0.25 + z.f * 0.5})`; g.beginPath(); g.arc(x, y, rad, 0, 7); g.fill();
+    g.strokeStyle = '#e6ff3d'; g.lineWidth = 2; g.beginPath(); g.arc(x, y, rad, 0, 7); g.stroke();
+    g.beginPath(); g.moveTo(x - rad - 10, y); g.lineTo(x + rad + 10, y); g.moveTo(x, y - rad - 10); g.lineTo(x, y + rad + 10); g.stroke();
+    g.fillStyle = '#fff'; g.font = '13px system-ui'; g.textAlign = 'center'; g.fillText(z.i, x, y - rad - 14);
+  }
+  const c = caps(), lines = [`dedos ${cur.n}`];
+  for (const z of cur.p) lines.push(`${z.i}  x ${r2(z.x).toFixed(2)}  y ${r2(z.y).toFixed(2)}  presión ${r2(z.f).toFixed(2)}  ⌀ ${Math.round(z.d)} px`);
+  lines.push(`presión: ${c.presion} · diámetro: ${c.diametro}`);
+  $('#hud').textContent = lines.join('\n');
+  requestAnimationFrame(draw);
+}
+setInterval(() => { const k = JSON.stringify(caps()); if (k !== lastCaps) { lastCaps = k; publishStatus(); } }, 700);
+
+// ---------- giro (orientación, velocidad de giro y aceleración) ----------
+let motionOn = false, bound = false, ang = null, rot = null, acc = null, mdirty = false;
+async function askMotion() { // iOS exige permiso explícito desde un gesto; Android no
+  for (const R of [window.DeviceMotionEvent, window.DeviceOrientationEvent])
+    if (R && typeof R.requestPermission === 'function') {
+      const r = await R.requestPermission();
+      if (r !== 'granted') throw new Error('Permiso de movimiento denegado. En iPhone: cierra Safari por completo y vuelve a entrar.');
+    }
+}
+function bindMotion() {
+  if (bound) return; bound = true;
+  addEventListener('deviceorientation', e => { ang = [e.alpha || 0, e.beta || 0, e.gamma || 0]; mdirty = true; });
+  addEventListener('devicemotion', e => {
+    const r = e.rotationRate, a = e.accelerationIncludingGravity;
+    if (r) rot = [r.beta || 0, r.gamma || 0, r.alpha || 0]; // ejes X, Y, Z en °/s
+    if (a) acc = [a.x || 0, a.y || 0, a.z || 0]; mdirty = true;
+  });
+  setInterval(() => {
+    if (!motionOn || !mdirty) return; mdirty = false;
+    pub('motion', { t: Date.now(), a: ang && ang.map(r1), r: rot && rot.map(r1), c: acc && acc.map(r2) });
+    if (ang) $('#v-motion').textContent = `${Math.round(ang[1])}° ${Math.round(ang[2])}°`;
+  }, 33);
+}
+
+// Autocorrelación para detección de pitch fundamental (Hz)
+function autoCorrelate(buf, sampleRate) {
+  const SIZE = buf.length;
+  let rms = 0;
+  for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
+  rms = Math.sqrt(rms / SIZE);
+  if (rms < 0.015) return 0; // silencio
+
+  // Rango de búsqueda: 50 Hz a 1200 Hz
+  const minPeriod = Math.floor(sampleRate / 1200);
+  const maxPeriod = Math.floor(sampleRate / 50);
+
+  let c0 = 0;
+  for (let i = 0; i < SIZE - maxPeriod; i++) c0 += buf[i] * buf[i];
+  if (c0 === 0) return 0;
+
+  let bestPeriod = 0, maxCorr = 0;
+  for (let lag = minPeriod; lag <= maxPeriod; lag++) {
+    let corr = 0;
+    for (let i = 0; i < SIZE - maxPeriod; i++) corr += buf[i] * buf[i + lag];
+    const normCorr = corr / c0;
+    if (normCorr > maxCorr && normCorr > 0.4) {
+      maxCorr = normCorr;
+      bestPeriod = lag;
+    }
+  }
+
+  if (bestPeriod > 0) {
+    return Math.round(sampleRate / bestPeriod);
+  }
+  return 0;
+}
+
+// ---------- micrófono ----------
+let micCtx, micStream, micTimer;
+async function startMic() {
+  micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  micCtx = new (window.AudioContext || window.webkitAudioContext)(); await micCtx.resume();
+  const an = micCtx.createAnalyser(); an.fftSize = 2048; micCtx.createMediaStreamSource(micStream).connect(an);
+  const t = new Float32Array(an.fftSize), f = new Uint8Array(an.frequencyBinCount), hz = micCtx.sampleRate / an.fftSize;
+  const band = (a, b) => { let s = 0, n = 0; for (let i = Math.max(1, Math.floor(a / hz)); i < Math.min(f.length, Math.ceil(b / hz)); i++) { s += f[i]; n++; } return n ? s / n / 255 : 0; };
+  micTimer = setInterval(() => {
+    an.getFloatTimeDomainData(t); let s = 0; for (const v of t) s += v * v; an.getByteFrequencyData(f);
+    const l = Math.min(1, Math.sqrt(s / t.length) * 4);
+    const fundamentalHz = autoCorrelate(t, micCtx.sampleRate);
+    pub('mic', { t: Date.now(), l: r3(l), b: [r3(band(40, 250)), r3(band(250, 2000)), r3(band(2000, 8000))], hz: fundamentalHz });
+    $('#v-mic').textContent = fundamentalHz > 0 ? `${fundamentalHz}Hz` : ('█'.repeat(Math.round(l * 6)) || '·');
+  }, 50);
+}
+function stopMic() { clearInterval(micTimer); micStream?.getTracks().forEach(t => t.stop()); micCtx?.close(); micStream = micCtx = null; }
+
+// ---------- cámara: movimiento y brillo calculados en el teléfono (no sale video) ----------
+let camStream, camTimer, prev = null;
+const W = 64, H = 36, work = document.createElement('canvas'); work.width = W; work.height = H;
+const wctx = work.getContext('2d', { willReadFrequently: true });
+async function startCam() {
+  camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: 640, height: 360 }, audio: false });
+  const vid = document.createElement('video'); vid.playsInline = true; vid.muted = true; vid.srcObject = camStream; await vid.play();
+  prev = null; let sm = 0;
+  camTimer = setInterval(() => {
+    wctx.drawImage(vid, 0, 0, W, H); const px = wctx.getImageData(0, 0, W, H).data, gray = new Uint8Array(W * H);
+    let bsum = 0; for (let i = 0; i < gray.length; i++) { gray[i] = (px[i * 4] * 0.3 + px[i * 4 + 1] * 0.59 + px[i * 4 + 2] * 0.11) | 0; bsum += gray[i]; }
+    if (prev) {
+      let n = 0, sx = 0, sy = 0;
+      for (let i = 0; i < gray.length; i++) if (Math.abs(gray[i] - prev[i]) > 25) { n++; sx += i % W; sy += (i / W) | 0; }
+      sm = sm * 0.4 + (n / gray.length) * 0.6;
+      pub('cam', { t: Date.now(), m: r3(sm), x: n ? r3(sx / n / W) : 0.5, y: n ? r3(sy / n / H) : 0.5, b: r3(bsum / gray.length / 255) });
+      $('#v-cam').textContent = Math.round(sm * 100) + '%';
+    }
+    prev = gray;
+  }, 80);
+}
+function stopCam() { clearInterval(camTimer); camStream?.getTracks().forEach(t => t.stop()); camStream = null; }
+
+// ---------- botones ----------
+const setOn = (id, on) => { $(id).classList.toggle('active', on); $(id).setAttribute('aria-pressed', on); };
+const fail = e => { $('#err2').textContent = e.message || String(e); };
+$('#m-motion').onclick = async () => {
+  try { $('#err2').textContent = ''; if (!motionOn) { await askMotion(); bindMotion(); } motionOn = !motionOn; setOn('#m-motion', motionOn); if (!motionOn) $('#v-motion').textContent = '–'; publishStatus(); } catch (e) { fail(e); }
+};
+$('#m-mic').onclick = async () => {
+  try { $('#err2').textContent = ''; if (micStream) { stopMic(); setOn('#m-mic', false); $('#v-mic').textContent = '–'; } else { await startMic(); setOn('#m-mic', true); } publishStatus(); } catch (e) { fail(e); }
+};
+$('#m-cam').onclick = async () => {
+  try { $('#err2').textContent = ''; if (camStream) { stopCam(); setOn('#m-cam', false); $('#v-cam').textContent = '–'; } else { await startCam(); setOn('#m-cam', true); } publishStatus(); } catch (e) { fail(e); }
+};
+
+// ---------- entrar ----------
+async function wake() { try { await navigator.wakeLock?.request('screen'); } catch {} }
+$('#go').onclick = async () => {
+  name = $('#name').value.trim() || 'tel'; sala = Tacto.clean($('#sala').value);
+  if (sala.length < 4) { $('#err').textContent = 'Escribe la sala que muestra la experiencia (mínimo 4 caracteres).'; return; }
+  if (!window.isSecureContext) { $('#err').textContent = 'Los sensores de movimiento necesitan HTTPS. El tacto funcionará igual.'; }
+  ls('tacto.name', name); ls('tacto.sala', sala);
+  try { await askMotion(); bindMotion(); motionOn = true; setOn('#m-motion', true); }
+  catch (e) { $('#err').textContent = e.message + ' Puedes continuar solo con el tacto.'; }
+  $('#join').style.display = 'none'; $('#run').style.display = 'flex'; fit(); draw(); wake();
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && wake());
+  connect().catch(e => { $('#st').textContent = 'No se pudo conectar'; fail(e); });
+};
+</script>
+</body>
+</html>

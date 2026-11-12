@@ -1,0 +1,702 @@
+/* =====================================================================
+   ROLAND TR-808 VINTAGE HARDWARE THEME
+   Fiel recreación estética del clásico sintetizador / drum machine Roland TR-808
+   ===================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@600;700&display=swap');
+
+:root {
+  color-scheme: dark;
+
+  /* Colores de chasis y carcasa TR-808 */
+  --tr-chassis: #0b0a0e;
+  --tr-surface: #141318;
+  --tr-panel-dark: #191820;
+  --tr-panel-metal: #8f98a3;
+  --tr-panel-metal-light: #b0b8c2;
+  --tr-border-line: #ff5500;
+  --tr-border-dim: #32303c;
+
+  /* Colores icónicos Roland TR-808 */
+  --tr-orange: #ff5500;
+  --tr-orange-glow: rgba(255, 85, 0, 0.5);
+  --tr-amber: #ff8400;
+  --tr-yellow: #ffc400;
+  --tr-cream: #f4edd9;
+  --tr-cream-ink: #111111;
+  --tr-white: #ffffff;
+  --tr-red: #e62e1b;
+  --tr-led-red: #ff2a14;
+  --tr-led-green: #00e676;
+  
+  /* Fuentes */
+  --font-roland: "Teko", "Impact", -apple-system, sans-serif;
+  --font-display: "Eurostile", "Microgramma", "Arial Black", -apple-system, sans-serif;
+  --font-mono: "Share Tech Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--tr-chassis);
+  color: var(--tr-white);
+  font-family: var(--font-display), -apple-system, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  line-height: 1.3;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* =====================================================================
+   1. HEADER ROLAND TR-808 CON LOGO CLÁSICO
+   ===================================================================== */
+header {
+  background: #000000;
+  border-bottom: 3px solid var(--tr-orange);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.brand-roland {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-roland);
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--tr-orange);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.brand-roland-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--tr-orange);
+  border-radius: 4px;
+  width: 26px;
+  height: 26px;
+  font-size: 16px;
+  font-family: monospace;
+  font-weight: 900;
+}
+
+.brand-model {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--tr-white);
+  text-transform: uppercase;
+}
+
+.brand-model span {
+  color: var(--tr-orange);
+}
+
+/* Indicador LED vintage */
+.conn-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--tr-cream);
+  background: #111116;
+  padding: 4px 12px;
+  border-radius: 3px;
+  border: 1px solid var(--tr-border-dim);
+}
+
+.led {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #44110e;
+  border: 1px solid #1a0604;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.8);
+  transition: all 0.25s ease;
+}
+
+.led.connected {
+  background: var(--tr-led-green);
+  box-shadow: 0 0 10px var(--tr-led-green), inset 0 -1px 2px rgba(255,255,255,0.5);
+}
+
+.led.waiting {
+  background: var(--tr-orange);
+  box-shadow: 0 0 10px var(--tr-orange), inset 0 -1px 2px rgba(255,255,255,0.5);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.room-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #111;
+  border: 1px solid var(--tr-orange);
+  padding: 4px 10px;
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--tr-cream);
+}
+
+.room-code {
+  font-family: var(--font-mono);
+  color: var(--tr-orange);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+/* =====================================================================
+   2. BOTONES FÍSICOS ESTILO ROLAND TR-808 (PULSADORES VINTAGE)
+   ===================================================================== */
+button, select {
+  font-family: var(--font-display), sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tr-white);
+  background: #1e1c24;
+  border: 1px solid #3d3a48;
+  border-radius: 3px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  outline: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+button:hover, select:hover {
+  background: #2a2732;
+  border-color: var(--tr-orange);
+}
+
+button:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
+}
+
+/* Botón crema / marfil (estilo START/STOP clásico) */
+button.btn-tr-cream, button.btn-primary {
+  background: var(--tr-cream);
+  color: var(--tr-cream-ink);
+  border: 2px solid #8e8369;
+  font-weight: 900;
+  box-shadow: 0 3px 0 #544d3b, 0 4px 6px rgba(0,0,0,0.6);
+}
+
+button.btn-tr-cream:hover, button.btn-primary:hover {
+  background: #ffffff;
+}
+
+button.btn-tr-cream:active, button.btn-primary:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #544d3b, inset 0 2px 3px rgba(0,0,0,0.4);
+}
+
+/* Botón REC (LED rojo encendido) */
+button.btn-rec {
+  background: #2b1111;
+  color: #ff9999;
+  border: 1px solid #662222;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+button.btn-rec .rec-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--tr-red);
+}
+
+button.btn-rec.recording {
+  background: #ff2a14;
+  color: #ffffff;
+  border-color: #ff6655;
+  box-shadow: 0 0 15px rgba(255, 42, 20, 0.7);
+}
+
+button.btn-rec.recording .rec-dot {
+  background: #ffffff;
+  animation: pulse808 0.7s infinite alternate ease-in-out;
+}
+
+@keyframes pulse808 {
+  0% { transform: scale(0.8); opacity: 0.4; }
+  100% { transform: scale(1.2); opacity: 1; }
+}
+
+button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* =====================================================================
+   3. LAYOUT GENERAL Y SEPARADORES CON SERIGRAFÍA VINTAGE
+   ===================================================================== */
+main {
+  flex: 1;
+  padding: 20px 24px;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* Título estilo "Rhythm Composer · Computer Controlled" */
+.tr-subheading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--tr-orange);
+  padding-bottom: 4px;
+  margin-top: 4px;
+}
+
+.tr-subheading .title-left {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--tr-orange);
+  text-transform: uppercase;
+}
+
+.tr-subheading .title-right {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  color: var(--tr-white);
+  text-transform: uppercase;
+}
+
+.top-grid {
+  display: grid;
+  grid-template-columns: 1.65fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 1024px) {
+  .top-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =====================================================================
+   4. LIENZO CENTRAL: LA MATRIZ DE LEDS TR-808
+   ===================================================================== */
+.stage-card {
+  background: #000000;
+  border: 2px solid #2a2833;
+  border-top: 3px solid var(--tr-orange);
+  border-radius: 4px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.9);
+}
+
+.stage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stage-title {
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--tr-orange);
+}
+
+.stage-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000000;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #1f1e24;
+}
+
+#canvas-visualizer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#webcam-video, #uploaded-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+.stage-touch-indicator {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--tr-orange);
+  background: rgba(0, 0, 0, 0.85);
+  padding: 4px 10px;
+  border-radius: 2px;
+  border: 1px solid var(--tr-orange);
+  pointer-events: none;
+}
+
+/* =====================================================================
+   5. PANEL DE CONTROL (CHASIS METAL / ALUMINIO TR-808)
+   ===================================================================== */
+.control-card {
+  background: linear-gradient(180deg, var(--tr-panel-metal-light) 0%, var(--tr-panel-metal) 100%);
+  border: 2px solid #4a515c;
+  border-radius: 4px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #111116;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 10px rgba(0,0,0,0.5);
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.12);
+  padding: 10px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.control-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #111116;
+  font-weight: 900;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.select-instrument {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  background: #111116;
+  color: var(--tr-white);
+  border: 1px solid #333;
+}
+
+/* =====================================================================
+   6. VISUALIZADORES DE PARÁMETROS DEL SAMPLER
+   ===================================================================== */
+.sampler-params-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.param-box {
+  background: var(--tr-surface);
+  border: 1px solid #26242f;
+  border-top: 2px solid var(--tr-orange);
+  border-radius: 3px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.param-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.param-title {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--tr-orange);
+}
+
+.param-val {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--tr-yellow);
+  font-weight: 700;
+}
+
+.param-bar {
+  height: 8px;
+  background: #08080a;
+  border: 1px solid #222;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.param-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--tr-orange), var(--tr-yellow));
+  width: 0%;
+  transition: width 0.08s ease-out;
+}
+
+/* =====================================================================
+   7. TECLAS DE PASO CLÁSICAS TR-808 (MAYOR, MENOR, DOM 7, DIM)
+   Los 4 colores distintivos: Rojo, Naranja, Amarillo, Blanco
+   ===================================================================== */
+.chord-badges {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.chord-badge {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 10px 4px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.15s ease;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.5);
+}
+
+/* 4 Colores TR-808 en estado inactivo */
+#chordBadgeMajor { background: #55140f; }
+#chordBadgeMinor { background: #55270f; }
+#chordBadgeAug   { background: #55440f; }
+#chordBadgeDim   { background: #3b3b44; }
+
+/* 4 Colores TR-808 cuando se activan (iluminados con resplandor) */
+#chordBadgeMajor.active {
+  background: var(--tr-red);
+  color: #fff;
+  box-shadow: 0 0 14px var(--tr-red);
+  border-color: #ff9999;
+}
+
+#chordBadgeMinor.active {
+  background: var(--tr-orange);
+  color: #fff;
+  box-shadow: 0 0 14px var(--tr-orange);
+  border-color: #ffd0b0;
+}
+
+#chordBadgeAug.active {
+  background: var(--tr-yellow);
+  color: #111;
+  box-shadow: 0 0 14px var(--tr-yellow);
+  border-color: #fff;
+}
+
+#chordBadgeDim.active {
+  background: var(--tr-white);
+  color: #111;
+  box-shadow: 0 0 14px var(--tr-white);
+  border-color: #fff;
+}
+
+/* =====================================================================
+   8. PEDALBOARD TR-808 (ESTILO MÓDULOS DE SONIDO ROLAND)
+   ===================================================================== */
+.pedalboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.pedal-card {
+  background: #0f0e13;
+  border: 1px solid #23212c;
+  border-radius: 3px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.pedal-card.active {
+  border-color: var(--tr-orange);
+  box-shadow: inset 0 0 16px rgba(255, 85, 0, 0.15);
+}
+
+.pedal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pedal-name {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tr-white);
+}
+
+.pedal-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #331111;
+  border: 1px solid #1a0505;
+  transition: all 0.2s ease;
+}
+
+.pedal-card.active .pedal-led {
+  background: var(--tr-led-red);
+  box-shadow: 0 0 8px var(--tr-led-red);
+}
+
+.pedal-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pedal-meter-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--tr-cream);
+  font-family: var(--font-mono);
+}
+
+.pedal-bar {
+  height: 6px;
+  background: #000000;
+  border: 1px solid #222;
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.pedal-bar-fill {
+  height: 100%;
+  background: var(--tr-orange);
+  width: 0%;
+  transition: width 0.08s ease-out;
+}
+
+/* Colores específicos de barras según la paleta TR-808 */
+.pedal-card:nth-child(1) .pedal-bar-fill { background: var(--tr-red); }
+.pedal-card:nth-child(2) .pedal-bar-fill { background: var(--tr-orange); }
+.pedal-card:nth-child(3) .pedal-bar-fill { background: var(--tr-amber); }
+.pedal-card:nth-child(4) .pedal-bar-fill { background: var(--tr-yellow); }
+.pedal-card:nth-child(5) .pedal-bar-fill { background: var(--tr-cream); }
+.pedal-card:nth-child(6) .pedal-bar-fill { background: var(--tr-orange); }
+.pedal-card:nth-child(7) .pedal-bar-fill { background: var(--tr-red); }
+
+/* =====================================================================
+   9. MODAL QR ESTILO HARDWARE MANUAL
+   ===================================================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-content {
+  background: #14131a;
+  border: 3px solid var(--tr-orange);
+  border-radius: 4px;
+  padding: 24px;
+  max-width: 360px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.9);
+}
+
+.modal-qr-img {
+  width: 180px;
+  height: 180px;
+  background: #fff;
+  border-radius: 2px;
+  padding: 8px;
+}
+
+.modal-url-code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--tr-orange);
+  background: #08080a;
+  padding: 6px 12px;
+  border-radius: 2px;
+  word-break: break-all;
+  user-select: all;
+  border: 1px solid var(--tr-border-dim);
+}

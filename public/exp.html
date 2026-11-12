@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Roland TR-808 · Tacto Sampler & FX</title>
+  <link rel="stylesheet" href="ui.css">
+  <!-- Tone.js (Síntesis y Sampler) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <!-- LameJS (Codificador MP3 en navegador) -->
+  <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.all.min.js"></script>
+  <!-- Generador de QR autónomo -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+</head>
+<body>
+
+  <!-- =====================================================================
+       A. CABECERA ROLAND TR-808 & CONEXIÓN
+       ===================================================================== -->
+  <header>
+    <div class="brand">
+      <div class="brand-roland">
+        <span class="brand-roland-logo">2</span>
+        <span>Roland</span>
+      </div>
+      <div class="brand-model">
+        Rhythm Composer <span>· TR-808 Sampler</span>
+      </div>
+      <div class="conn-status" id="brokerStatusWrap">
+        <span class="led" id="ledStatus"></span>
+        <span id="connStatusText">DESCONECTADO</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Cuadro de la sala actual -->
+      <div class="room-box">
+        <span>SALA:</span>
+        <span class="room-code" id="roomCodeDisplay">------</span>
+      </div>
+
+      <!-- Botón para ver QR -->
+      <button id="btnOpenQR" type="button" title="Conectar teléfono escaneando QR">
+        📱 CONECTAR
+      </button>
+
+      <!-- Botón Activar Sonido estilo TR-808 START/STOP -->
+      <button id="btnAudioStart" class="btn-tr-cream" type="button">
+        🔊 POWER AUDIO
+      </button>
+    </div>
+  </header>
+
+  <!-- =====================================================================
+       CUERPO PRINCIPAL TR-808
+       ===================================================================== -->
+  <main>
+
+    <!-- Sub-encabezado serigrafiado vintage -->
+    <div class="tr-subheading">
+      <span class="title-left">Rhythm Composer</span>
+      <span class="title-right">Computer Controlled · TR-808</span>
+    </div>
+
+    <!-- Fila Superior: Matriz LED Central + Panel de Transporte Metal -->
+    <div class="top-grid">
+
+      <!-- LIENZO CENTRAL (MATRIZ DE LEDS TR-808) -->
+      <div class="stage-card">
+        <div class="stage-header">
+          <span class="stage-title">STEP VISUALIZER MATRIX</span>
+          
+          <!-- B.6 Selector de fuente visual -->
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <select id="selVisualSource" aria-label="Fuente visual">
+              <option value="gen">Matriz LED (Generada)</option>
+              <option value="cam">Cámara Web en Vivo</option>
+              <option value="file">Video Local (.mp4)</option>
+            </select>
+            <input type="file" id="fileVideoInput" accept="video/mp4,video/*" style="display: none;">
+          </div>
+        </div>
+
+        <div class="stage-wrap" id="stageWrap">
+          <canvas id="canvas-visualizer"></canvas>
+          <video id="webcam-video" autoplay playsinline muted></video>
+          <video id="uploaded-video" loop playsinline muted></video>
+          <div class="stage-touch-indicator" id="touchCoords">TACTO: REPOSO</div>
+        </div>
+      </div>
+
+      <!-- B. PANEL DE CONTROL (CHASIS METÁLICO ALUMINIO) -->
+      <div class="control-card">
+        
+        <!-- B.1 Selector de instrumento (Tonejs-Instruments) -->
+        <div class="control-group">
+          <label class="control-label" for="selInstrument">VOICE SELECT (20 Instruments · Sample Library)</label>
+          <select id="selInstrument" class="select-instrument">
+            <option value="piano">Piano Acústico</option>
+            <option value="guitar-acoustic">Guitarra Acústica</option>
+            <option value="guitar-electric">Guitarra Eléctrica</option>
+            <option value="guitar-nylon">Guitarra Nylon (Clásica)</option>
+            <option value="bass-electric">Bajo Eléctrico</option>
+            <option value="contrabass">Contrabajo</option>
+            <option value="violin">Violín</option>
+            <option value="cello">Violonchelo (Cello)</option>
+            <option value="flute">Flauta</option>
+            <option value="clarinet">Clarinete</option>
+            <option value="bassoon">Fagot (Bassoon)</option>
+            <option value="trumpet">Trompeta</option>
+            <option value="french-horn">Corno Francés</option>
+            <option value="trombone">Trombón</option>
+            <option value="tuba">Tuba</option>
+            <option value="saxophone">Saxofón</option>
+            <option value="harp">Arpa</option>
+            <option value="xylophone">Xilófono</option>
+            <option value="organ">Órgano</option>
+            <option value="harmonium">Armonio (Harmonium)</option>
+          </select>
+          <small id="instrumentStatus" style="font-size: 11px; color: #111; font-family: var(--font-mono); font-weight: 700;">Cargando banco de sonido...</small>
+        </div>
+
+        <!-- B.2, B.3, B.4 Grabación y Descarga -->
+        <div class="control-group">
+          <span class="control-label">MASTER TAPE RECORD</span>
+          <div class="button-row">
+            <button id="btnRecord" class="btn-rec" type="button">
+              <span class="rec-dot"></span>
+              <span id="btnRecordText">REC / TAPE</span>
+            </button>
+            <span id="recTimer" style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; align-self: center; color: var(--tr-red); display: none;">00:00</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <span class="control-label">EXPORT AUDIO</span>
+          <div class="button-row">
+            <button id="btnDownloadWAV" type="button" disabled>EXPORT .WAV</button>
+            <button id="btnDownloadMP3" type="button" disabled>EXPORT .MP3</button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- =====================================================================
+         C. VISUALIZADORES DE PARÁMETROS TR-808 (SOLO LECTURA)
+         ===================================================================== -->
+    <div class="tr-subheading" style="margin-top: 10px;">
+      <span class="title-left" style="font-size: 15px;">SAMPLER DYNAMICS & CHORD MATRIX</span>
+      <span class="title-right" style="font-size: 11px;">CELLPHONE MODULATED</span>
+    </div>
+    
+    <div class="sampler-params-grid">
+      
+      <!-- C.1 Attack -->
+      <div class="param-box">
+        <div class="param-header">
+          <span class="param-title">ATTACK TIME</span>
+          <span class="param-val" id="dispAttack">0.05 s</span>
+        </div>
+        <div class="param-bar"><div class="param-bar-fill" id="barAttack" style="width: 10%;"></div></div>
+        <small style="font-size: 10px; color: var(--tr-cream); font-family: var(--font-mono);">Touch Pos Y / Presión</small>
+      </div>
+
+      <!-- C.2 Tipo de Acorde Activo (Teclas de 4 colores TR-808) -->
+      <div class="param-box">
+        <div class="param-header">
+          <span class="param-title">ACTIVE CHORD (808 KEYS)</span>
+          <span class="param-val" id="dispChordType">Mayor</span>
+        </div>
+        <div class="chord-badges">
+          <div class="chord-badge" id="chordBadgeMajor">MAYOR (X+)</div>
+          <div class="chord-badge" id="chordBadgeMinor">MENOR (X-)</div>
+          <div class="chord-badge" id="chordBadgeAug">AUM (Y+)</div>
+          <div class="chord-badge" id="chordBadgeDim">DISM (Y-)</div>
+        </div>
+        <small style="font-size: 10px; color: var(--tr-cream); font-family: var(--font-mono);">Eje dominante: X+ Mayor | X- Menor | Y+ Aumentada | Y- Disminuida</small>
+      </div>
+
+      <!-- C.3 Sustain & Release -->
+      <div class="param-box">
+        <div class="param-header">
+          <span class="param-title">DECAY / RELEASE</span>
+          <span class="param-val" id="dispSustainRelease">Rel: 1.2s</span>
+        </div>
+        <div class="param-bar"><div class="param-bar-fill" id="barRelease" style="width: 30%;"></div></div>
+        <small style="font-size: 10px; color: var(--tr-cream); font-family: var(--font-mono);">Diámetro de contacto</small>
+      </div>
+
+      <!-- C.3 Compresor -->
+      <div class="param-box">
+        <div class="param-header">
+          <span class="param-title">COMPRESSOR DYNAMICS</span>
+          <span class="param-val" id="dispCompressor">-24 dB</span>
+        </div>
+        <div class="param-bar"><div class="param-bar-fill" id="barCompressor" style="width: 25%;"></div></div>
+        <small style="font-size: 10px; color: var(--tr-cream); font-family: var(--font-mono);">Micrófono del celular (RMS)</small>
+      </div>
+
+    </div>
+
+    <!-- C.4 Pedales de Efectos de Guitarra (Módulos de Sonido TR-808) -->
+    <div class="tr-subheading" style="margin-top: 10px;">
+      <span class="title-left" style="font-size: 15px;">ANALOG EFFECT PEDALS</span>
+      <span class="title-right" style="font-size: 11px;">GYRO & TOUCH CONTROLLED</span>
+    </div>
+    
+    <div class="pedalboard">
+      
+      <!-- 1. Overdrive -->
+      <div class="pedal-card" id="pedalOverdrive">
+        <div class="pedal-header">
+          <span class="pedal-name">OVERDRIVE</span>
+          <span class="pedal-led"></span>
+        </div>
+        <div class="pedal-meter">
+          <div class="pedal-meter-info"><span>DRIVE (Presión)</span><span id="dispValDrive">0%</span></div>
+          <div class="pedal-bar"><div class="pedal-bar-fill" id="barDrive"></div></div>
+        </div>
+      </div>
+
+      <!-- 2. Phaser -->
+      <div class="pedal-card" id="pedalPhaser">
+        <div class="pedal-header">
+          <span class="pedal-name">PHASER</span>
+          <span class="pedal-led"></span>
+        </div>
+        <div class="pedal-meter">
+          <div class="pedal-meter-info"><span>DEPTH (Giro Gamma)</span><span id="dispValPhaser">0%</span></div>
+          <div class="pedal-bar"><div class="pedal-bar-fill" id="barPhaser"></div></div>
+        </div>
+      </div>
+
+      <!-- 3. Chorus -->
+      <div class="pedal-card" id="pedalChorus">
+        <div class="pedal-header">
+          <span class="pedal-name">CHORUS</span>
+          <span class="pedal-led"></span>
+        </div>
+        <div class="pedal-meter">
+          <div class="pedal-meter-info"><span>WET (Rotación Y)</span><span id="dispValChorus">0%</span></div>
+          <div class="pedal-bar"><div class="pedal-bar-fill" id="barChorus"></div></div>
+        </div>
+      </div>
+
+      <!-- 4. Tremolo -->
+      <div class="pedal-card" id="pedalTremolo">
+        <div class="pedal-header">
+          <span class="pedal-name">TREMOLO</span>
+          <span class="pedal-led"></span>
+        </div>
+        <div class="pedal-meter">
+          <div class="pedal-meter-info"><span>RATE (Rotación Z)</span><span id="dispValTremolo">0%</span></div>
+          <div class="pedal-bar"><div class="pedal-bar-fill" id="barTremolo"></div></div>
+        </div>
+      </div>
+
+      <!-- 5. Vibrato -->
+      <div class="pedal-card" id="pedalVibrato">
+        <div class="pedal-header">
+          <span class="pedal-name">VIBRATO</span>
+          <span class="pedal-led"></span>
+        </div>
+        <div class="pedal-meter">
+          <div class="pedal-meter-info"><span>DEPTH (Giro Alfa)</span><span id="dispValVibrato">0%</span></div>
+          <div class="pedal-bar"><div class="pedal-bar-fill" id="barVibrato"></div></div>
+        </div>
+      </div>
+
+      <!-- 6. Delay -->
+      <div class="pedal-card" id="pedalDelay">
+        <div class="pedal-header">
+          <span class="pedal-name">DELAY</span>
+          <span class="pedal-led"></span>
+        </div>
+        <div class="pedal-meter">
+          <div class="pedal-meter-info"><span>ECHO (Dist. Dedos)</span><span id="dispValDelay">0%</span></div>
+          <div class="pedal-bar"><div class="pedal-bar-fill" id="barDelay"></div></div>
+        </div>
+      </div>
+
+      <!-- 7. Reverb -->
+      <div class="pedal-card" id="pedalReverb">
+        <div class="pedal-header">
+          <span class="pedal-name">REVERB</span>
+          <span class="pedal-led"></span>
+        </div>
+        <div class="pedal-meter">
+          <div class="pedal-meter-info"><span>ROOM (Giro Beta)</span><span id="dispValReverb">0%</span></div>
+          <div class="pedal-bar"><div class="pedal-bar-fill" id="barReverb"></div></div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- =====================================================================
+       A.1 MODAL DEL CÓDIGO QR
+       ===================================================================== -->
+  <div class="modal-overlay" id="qrModal">
+    <div class="modal-content">
+      <h2 style="font-size: 16px; font-weight: 900; color: var(--tr-orange); letter-spacing: 0.1em;">ROLAND TR-808 · LINK</h2>
+      <img id="qrImage" class="modal-qr-img" alt="Código QR para conectar teléfono">
+      <div class="modal-url-code" id="phoneUrlText">Cargando dirección...</div>
+      <p style="font-size: 11px; color: var(--tr-cream); font-family: var(--font-mono);">Escanea con la cámara de tu teléfono para vincular los sensores táctiles y giroscopio.</p>
+      <button type="button" id="btnCloseQR" class="btn-tr-cream" style="width: 100%;">CERRAR</button>
+    </div>
+  </div>
+
+  <!-- Scripts del sistema Tacto y aplicación -->
+  <script src="config.js"></script>
+  <script src="tacto.js"></script>
+  <script src="tonejs-instruments-master/Tonejs-Instruments.js"></script>
+  <script src="exp.js"></script>
+</body>
+</html>
