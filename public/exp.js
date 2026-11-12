@@ -23,7 +23,8 @@ roomDisplay.textContent = tacto.sala;
 
 function updateConnectionUI() {
   const dev = tacto.pick();
-  const isOnline = dev && dev.online;
+  const isRecent = dev && dev.last > 0 && (performance.now() - dev.last < 4500);
+  const isOnline = dev && (dev.online || isRecent);
   const isBroker = tacto.client && tacto.client.connected;
 
   if (isBroker && isOnline) {
@@ -40,6 +41,8 @@ function updateConnectionUI() {
 
 tacto.on('estado', () => updateConnectionUI());
 tacto.on('dispositivo', () => updateConnectionUI());
+tacto.on('datos', () => updateConnectionUI());
+setInterval(updateConnectionUI, 1000);
 
 // Modal QR
 const qrModal = $('#qrModal');
